@@ -2,6 +2,7 @@ package jenkins.plugins.hipchat;
 
 import hudson.Util;
 import hudson.model.*;
+import hudson.model.Cause;
 import hudson.scm.ChangeLogSet;
 import hudson.scm.ChangeLogSet.AffectedFile;
 import hudson.scm.ChangeLogSet.Entry;
@@ -16,20 +17,25 @@ import java.util.logging.Logger;
 @SuppressWarnings("rawtypes")
 public class ActiveNotifier implements FineGrainedNotifier {
 
+    // Logger
     private static final Logger logger = Logger.getLogger(HipChatListener.class.getName());
 
-    HipChatNotifier notifier;
-
+    // Hipchat notifier
+    static HipChatNotifier notifier;
+    
+    
     public ActiveNotifier(HipChatNotifier notifier) {
         super();
-        this.notifier = notifier;
+        ActiveNotifier.notifier = notifier;
     }
 
+    
     private HipChatService getHipChat(AbstractBuild r) {
         AbstractProject<?, ?> project = r.getProject();
         String projectRoom = Util.fixEmpty(project.getProperty(HipChatNotifier.HipChatJobProperty.class).getRoom());
         return notifier.newHipChatService(projectRoom);
     }
+
 
     public void deleted(AbstractBuild r) {
     }
@@ -37,16 +43,31 @@ public class ActiveNotifier implements FineGrainedNotifier {
     public void started(AbstractBuild build) {
         String changes = getChanges(build);
         CauseAction cause = build.getAction(CauseAction.class);
-
+        
+        logger.info("CAUSE ----- " + cause.getShortDescription().substring(16));
+        
+        MessageBuilder message = new MessageBuilder(notifier, build);
+        
+        // If we have changes, then publish a start notification with the changes.
         if (changes != null) {
-            notifyStart(build, changes);
+            message.append(changes);
+            message.appendOpenLink();
+            
+        // If we don't have changes, but we do have a cause, then start building
+        // a message and send the build cause plus a link
         } else if (cause != null) {
-            MessageBuilder message = new MessageBuilder(notifier, build);
+            //MessageBuilder message = new MessageBuilder(notifier, build);
             message.append(cause.getShortDescription());
-            notifyStart(build, message.appendOpenLink().toString());
+            message.appendOpenLink();
+            
+        // Otherwise, just get the build status message and send it along
         } else {
-            notifyStart(build, getBuildStatusMessage(build));
+            
+            message.append(getBuildStatusMessage(build));
+            
         }
+        
+        notifyStart(build, message.toString());
     }
 
     private void notifyStart(AbstractBuild build, String message) {
@@ -69,10 +90,38 @@ public class ActiveNotifier implements FineGrainedNotifier {
                 || (result == Result.SUCCESS && jobProperty.getNotifySuccess())
                 || (result == Result.UNSTABLE && jobProperty.getNotifyUnstable())) {
             getHipChat(r).publish(getBuildStatusMessage(r), getBuildColor(r));
+            
+            // Get who launched the build from the cause
+            if ( getChanges(r) != null )
+            {
+                getHipChat(r).publishText(String.format("%s - Your commits were included in build for %s, which had a status of %s.  Go to %s to check out the details", 
+                        getCommitAuthors(r), 
+                        r.getDescription(),
+                        result.toString(),
+                        notifier.getBuildServerUrl() + r.getUrl())
+                        , getBuildColor(r));
+            }
+            else
+            {
+                String builder = r.getAction(CauseAction.class).getShortDescription().substring(16);
+                if (!builder.equalsIgnoreCase("anonymous"))
+                {
+                    getHipChat(r).publishText(String.format("@%s - You launched a build with a result of %s.  Go to %s to check out the details", 
+                            builder, 
+                            result.toString(),
+                            notifier.getBuildServerUrl() + r.getUrl())
+                            , getBuildColor(r));
+                }
+                else
+                {
+                    getHipChat(r).publishText(String.format("A build was started by %s - it would be better if you log in to Jenkins next time!!", builder), getBuildColor(r));
+                }
+            }
         }
+        
     }
 
-    String getChanges(AbstractBuild r) {
+    static String getChanges(AbstractBuild r) {
         if (!r.hasChangeSetComputed()) {
             logger.info("No change set computed...");
             return null;
@@ -90,19 +139,45 @@ public class ActiveNotifier implements FineGrainedNotifier {
             logger.info("Empty change...");
             return null;
         }
+        
         Set<String> authors = new HashSet<String>();
         for (Entry entry : entries) {
             authors.add(entry.getAuthor().getDisplayName());
         }
         MessageBuilder message = new MessageBuilder(notifier, r);
-        message.append("Started by changes from ");
+        message.append("- changes from ");
         message.append(StringUtils.join(authors, ", "));
         message.append(" (");
         message.append(files.size());
         message.append(" file(s) changed)");
-        return message.appendOpenLink().toString();
+        //return message.appendOpenLink().toString();
+        return message.toString();
     }
-
+    static String getCommitAuthors(AbstractBuild build)
+    {
+        ChangeLogSet changeSet = build.getChangeSet();
+        List<Entry> entries = new LinkedList<Entry>();
+        Set<AffectedFile> files = new HashSet<AffectedFile>();
+        for (Object o : changeSet.getItems()) {
+            Entry entry = (Entry) o;
+            logger.info("Entry " + o);
+            entries.add(entry);
+            files.addAll(entry.getAffectedFiles());
+        }
+        if (entries.isEmpty()) {
+            logger.info("Empty change...");
+            return null;
+        }
+        
+        Set<String> authors = new HashSet<String>();
+        for (Entry entry : entries) {
+            authors.add('@' + entry.getAuthor().getDisplayName());
+        }
+        
+        return StringUtils.join(authors, ", ");
+    }
+    
+    
     static String getBuildColor(AbstractBuild r) {
         Result result = r.getResult();
         if (result == Result.SUCCESS) {
@@ -118,7 +193,9 @@ public class ActiveNotifier implements FineGrainedNotifier {
         MessageBuilder message = new MessageBuilder(notifier, r);
         message.appendStatusMessage();
         message.appendDuration();
-        return message.appendOpenLink().toString();
+        message.appendOpenLink().toString();
+        message.appendDetails();
+        return message.toString();
     }
 
     public static class MessageBuilder {
@@ -137,23 +214,37 @@ public class ActiveNotifier implements FineGrainedNotifier {
             message.append(getStatusMessage(build));
             return this;
         }
-
+        
         static String getStatusMessage(AbstractBuild r) {
             if (r.isBuilding()) {
                 return "Starting...";
             }
+            
             Result result = r.getResult();
             Run previousBuild = r.getProject().getLastBuild().getPreviousBuild();
             Result previousResult = (previousBuild != null) ? previousBuild.getResult() : Result.SUCCESS;
             if (result == Result.SUCCESS && previousResult == Result.FAILURE) return "Back to normal";
-            if (result == Result.SUCCESS) return "Success";
-            if (result == Result.FAILURE) return "<b>FAILURE</b>";
+            if (result == Result.SUCCESS) return "Success - ";
+            if (result == Result.FAILURE) return "<b>FAILURE </b>";
             if (result == Result.ABORTED) return "ABORTED";
             if (result == Result.NOT_BUILT) return "Not built";
             if (result == Result.UNSTABLE) return "Unstable";
             return "Unknown";
         }
 
+        public MessageBuilder appendDetails()
+        {
+            message.append( "<br/>");
+            message.append( build.getAction(CauseAction.class).getShortDescription() );
+            
+            if (getChanges(build)!= null)
+            {
+                message.append( "<br/>");
+                message.append( getChanges(build) );
+            }
+            
+            return this;
+        }
         public MessageBuilder append(String string) {
             message.append(string);
             return this;

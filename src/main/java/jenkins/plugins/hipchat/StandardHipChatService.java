@@ -57,6 +57,34 @@ public class StandardHipChatService implements HipChatService {
         }
     }
     
+    public void publishText(String message, String color) {
+        for (String roomId : roomIds) {
+            logger.info("Posting: " + from + " to " + roomId + ": " + message + " " + color);
+            HttpClient client = getHttpClient();
+            String url = "https://" + host + "/v1/rooms/message?auth_token=" + token;
+            PostMethod post = new PostMethod(url);
+
+            try {
+                post.addParameter("from", from);
+                post.addParameter("room_id", roomId);
+                post.addParameter("message", message);
+                post.addParameter("color", color);
+                post.addParameter("notify", shouldNotify(color));
+                post.addParameter("message_format", "text");
+                post.getParams().setContentCharset("UTF-8");
+                int responseCode = client.executeMethod(post);
+                String response = post.getResponseBodyAsString();
+                if(responseCode != HttpStatus.SC_OK || ! response.contains("\"sent\"")) {
+                    logger.log(Level.WARNING, "HipChat post may have failed. Response: " + response);
+                }
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "Error posting to HipChat", e);
+            } finally {
+                post.releaseConnection();
+            }
+        }
+    }
+    
     private HttpClient getHttpClient() {
         HttpClient client = new HttpClient();
         if (Jenkins.getInstance() != null) {
