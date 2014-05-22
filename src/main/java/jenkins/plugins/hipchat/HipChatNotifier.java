@@ -144,6 +144,8 @@ public class HipChatNotifier extends Notifier {
         private boolean notifyUnstable;
         private boolean notifyFailure;
         private boolean notifyBackToNormal;
+        private boolean mentionCommitters;
+        private boolean mentionBuilders;
 
 
         @DataBoundConstructor
@@ -154,7 +156,9 @@ public class HipChatNotifier extends Notifier {
                                   boolean notifyNotBuilt,
                                   boolean notifySuccess,
                                   boolean notifyUnstable,
-                                  boolean notifyBackToNormal) {
+                                  boolean notifyBackToNormal,
+                                  boolean mentionCommitters,
+                                  boolean mentionBuilders) {
             this.room = room;
             this.startNotification = startNotification;
             this.notifyAborted = notifyAborted;
@@ -163,6 +167,8 @@ public class HipChatNotifier extends Notifier {
             this.notifySuccess = notifySuccess;
             this.notifyUnstable = notifyUnstable;
             this.notifyBackToNormal = notifyBackToNormal;
+            this.mentionCommitters = mentionCommitters;
+            this.mentionBuilders = mentionBuilders;
         }
 
         @Exported
@@ -218,6 +224,16 @@ public class HipChatNotifier extends Notifier {
         public boolean getNotifyBackToNormal() {
             return notifyBackToNormal;
         }
+        
+        @Exported
+        public boolean getMentionCommitters() {
+            return mentionCommitters;
+        }
+        
+        @Exported
+        public boolean getMentionBuilders() {
+            return mentionBuilders;
+        }
 
         @Extension
         public static final class DescriptorImpl extends JobPropertyDescriptor {
@@ -239,7 +255,9 @@ public class HipChatNotifier extends Notifier {
                         sr.getParameter("hipChatNotifyNotBuilt") != null,
                         sr.getParameter("hipChatNotifySuccess") != null,
                         sr.getParameter("hipChatNotifyUnstable") != null,
-                        sr.getParameter("hipChatNotifyBackToNormal") != null);
+                        sr.getParameter("hipChatNotifyBackToNormal") != null,
+                        sr.getParameter("hipChatMentionCommitters") != null,
+                        sr.getParameter("hipChatMentionBuilders") != null);
             }
         }
     }
