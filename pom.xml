@@ -21,7 +21,7 @@
     <groupId>org.jvnet.hudson.plugins</groupId>
 	<artifactId>hipchat</artifactId>
 	<packaging>hpi</packaging>
-	<version>0.1.5-SNAPSHOT</version>
+	<version>0.1.6-CSConnell</version>
 	<name>Jenkins HipChat Plugin</name>
 	<description>A Build status publisher that notifies channels on a HipChat server</description>
     <url>http://wiki.jenkins-ci.org/display/JENKINS/HipChat+Plugin</url>
@@ -44,12 +44,13 @@
             <url>http://maven.jenkins-ci.org:8081/content/repositories/releases/</url>
         </repository>
     </distributionManagement>
-
+    
     <scm>
-        <connection>scm:git:ssh://github.com/jenkinsci/hipchat-plugin.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/jenkinsci/hipchat-plugin.git</developerConnection>
-        <url>https://github.com/jenkinsci/hipchat-plugin</url>
+        <developerConnection>scm:git:ssh://git@github.com/csconnell/hipchat-plugin.git</developerConnection>
+        <url>https://github.com/csconnell/hipchat-plugin</url>
+        <connection>scm:git:ssh://github.com/csconnell/hipchat-plugin.git</connection>
     </scm>
+
 
 	<dependencies>
 		<dependency>
@@ -107,5 +108,6 @@
         </pluginRepository>
     </pluginRepositories>
 </project>  
-
+    
+</project>
 

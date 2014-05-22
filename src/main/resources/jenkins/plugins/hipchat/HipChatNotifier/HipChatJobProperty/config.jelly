@@ -32,6 +32,14 @@
         <f:entry title="Notify Back To Normal">
             <f:checkbox name="hipChatNotifyBackToNormal" value="true" checked="${instance.getNotifyBackToNormal()}"/>
         </f:entry>
+        
+        <f:entry title="@Mention Committers">
+            <f:checkbox name="hipChatMentionCommitters" value="true" checked="${instance.getMentionCommitters()}"/>
+        </f:entry>
+        
+        <f:entry title="@Mention Builders">
+            <f:checkbox name="hipChatMentionBuilders" value="true" checked="${instance.getMentionBuilders()}"/>
+        </f:entry>
 
     </f:section>
 
