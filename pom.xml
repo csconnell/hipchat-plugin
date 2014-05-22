@@ -102,4 +102,9 @@
         </pluginRepository>
     </pluginRepositories>
 
+    <scm>
+    	<developerConnection>scm:git:ssh://git@github.com/csconnell/hipchat-plugin.git</developerConnection>
+    	<url>https://github.com/csconnell/hipchat-plugin</url>
+    	<connection>scm:git:ssh://github.com/csconnell/hipchat-plugin.git</connection>
+    </scm>
 </project>
