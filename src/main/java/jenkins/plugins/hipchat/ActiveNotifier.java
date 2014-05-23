@@ -99,12 +99,12 @@ public class ActiveNotifier implements FineGrainedNotifier {
              * of the build.
              */
             // Get the committers, if there are changes ...
-            
+                        
             if ( getChanges(r) != null && jobProperty.getMentionCommitters())
             {
                 getHipChat(r).publishText(String.format("%s - Your commits were included in build for %s, which had a status of %s.  Go to %s to check out the details", 
                         getCommitAuthors(r), 
-                        r.getDescription(),
+                        r.getFullDisplayName(),
                         result.toString(),
                         notifier.getBuildServerUrl() + r.getUrl())
                         , getBuildColor(r));
