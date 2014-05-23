@@ -99,12 +99,12 @@ public class ActiveNotifier implements FineGrainedNotifier {
              * of the build.
              */
             // Get the committers, if there are changes ...
-                        
+            String fullBuildName = r.getFullDisplayName();            
             if ( getChanges(r) != null && jobProperty.getMentionCommitters())
             {
                 getHipChat(r).publishText(String.format("%s - Your commits were included in build for %s, which had a status of %s.  Go to %s to check out the details", 
                         getCommitAuthors(r), 
-                        r.getFullDisplayName(),
+                        fullBuildName,
                         result.toString(),
                         notifier.getBuildServerUrl() + r.getUrl())
                         , getBuildColor(r));
@@ -118,8 +118,9 @@ public class ActiveNotifier implements FineGrainedNotifier {
                 // If we actually know the builder's name, then @mention them
                 if (!builder.equalsIgnoreCase("anonymous"))
                 {
-                    getHipChat(r).publishText(String.format("@%s - You launched a build with a result of %s.  Go to %s to check out the details", 
-                            builder, 
+                    getHipChat(r).publishText(String.format("@%s - You launched a build for %s with a result of %s.  Go to %s to check out the details", 
+                            builder,
+                            fullBuildName,
                             result.toString(),
                             notifier.getBuildServerUrl() + r.getUrl())
                             , getBuildColor(r));
